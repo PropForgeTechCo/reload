@@ -137,7 +137,10 @@ func TestPartialResponse(t *testing.T) {
 		
 		<body class="main" asdf>
 			<h1>Hello World!</h1>`
-		w.Write([]byte(body))
+		_, err := w.Write([]byte(body))
+		if err != nil {
+			return
+		}
 	})
 
 	reload := NewTestingReloader(t)

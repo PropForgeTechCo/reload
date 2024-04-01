@@ -6,7 +6,6 @@ import (
 	"log"
 	"path"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/bep/debounce"
@@ -17,7 +16,6 @@ import (
 // broadcasts on write.
 func (reload *Reloader) WatchDirectories() {
 	if len(reload.directories) == 0 {
-		reload.Log.Println("no directories provided (reload.Directories is empty)")
 		return
 	}
 
@@ -43,8 +41,6 @@ func (reload *Reloader) WatchDirectories() {
 			w.Add(dir)
 		}
 	}
-
-	reload.Log.Println("watching", strings.Join(reload.directories, ","), "for changes")
 
 	debounce := debounce.New(100 * time.Millisecond)
 

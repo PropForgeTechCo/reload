@@ -2,41 +2,43 @@
 
 ![Tests](https://github.com/aarol/reload/actions/workflows/test.yml/badge.svg)
 
-Reload is a Go package, which enables "soft reloading" of web server assets and templates, reloading the browser instantly via Websockets. The strength of Reload lies in it's simple API and easy integration to any Go projects.
+Reload is a Go package, which enables "soft reloading" of web server assets and templates, 
+reloading the browser almost instantly via Websockets. The strength of Reload lies in its 
+simple API and easy integration to any Go projects.
+
+This package is a fork of https://github.com/aarol/reload with the following changes:
+
+  - Does not attempt to watch directories if there are none
 
 ## Installation
 
-`go get github.com/aarol/reload`
+`go get github.com/PropForgeTechCo/reload`
 
 ## Usage
 
 1. Create a new Reloader and insert the middleware to your handler chain:
 
    ```go
-   // handler can be anything that implements http.Handler,
-   // like chi.Router, echo.Echo or gin.Engine
-   var handler http.Handler = http.DefaultServeMux
+   
+    // HotReload is a middleware handler that injects a hot refresh script into the page.
+    // The script connects back to a websocket (handled by the middleware) and if the server
+    // is restarted, via air, or otherwise, then the browser will lose the connection to the websocket
+    // and when it reconnects, it will refresh the page. It retries the connection every second.
+    func HotReload(next http.Handler) http.Handler {
 
-   if isDevelopment {
-      // Call `New()` with a list of directories to recursively watch
-      reloader := reload.New("ui/")
-
-      // Optionally, define a callback to
-      // invalidate any caches
-      reloader.OnReload = func() {
-         app.parseTemplates()
-      }
-
-      // Use the Handle() method as a middleware
-      handler = reloader.Handle(handler)
-   }
-
-   http.ListenAndServe(addr, handler)
+	// Call `New()` with a list of directories to recursively watch, here we don't
+	// watch any directories, because we need to rebuild the service to refresh the templates.
+	// However, the reloader will complain about not having any directories to watch, so we
+	// pass in the current directory.
+    refresh := reload.New()
+   
+	refresh.OnReload = func() {
+	}
+	return refresh.Handle(next)
+}
    ```
 
 2. Run your application, make changes to files in the specified directories, and see the updated page instantly!
-
-See the full example at <https://github.com/aarol/reload/blob/main/example/main.go>
 
 ## How it works
 
