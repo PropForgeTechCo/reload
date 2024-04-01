@@ -6,7 +6,6 @@ import (
 	"log"
 	"path"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/bep/debounce"
