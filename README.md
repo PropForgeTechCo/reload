@@ -18,25 +18,24 @@ This package is a fork of https://github.com/aarol/reload with the following cha
 
 1. Create a new Reloader and insert the middleware to your handler chain:
 
-   ```go
-   
-    // HotReload is a middleware handler that injects a hot refresh script into the page.
-    // The script connects back to a websocket (handled by the middleware) and if the server
-    // is restarted, via air, or otherwise, then the browser will lose the connection to the websocket
-    // and when it reconnects, it will refresh the page. It retries the connection every second.
-    func HotReload(next http.Handler) http.Handler {
+```go
+// HotReload is a middleware handler that injects a hot refresh script into the page.
+// The script connects back to a websocket (handled by the middleware) and if the server
+// is restarted, via air, or otherwise, then the browser will lose the connection to the websocket
+// and when it reconnects, it will refresh the page. It retries the connection every second.
+func HotReload(next http.Handler) http.Handler {
 
-	// Call `New()` with a list of directories to recursively watch, here we don't
-	// watch any directories, because we need to rebuild the service to refresh the templates.
-	// However, the reloader will complain about not having any directories to watch, so we
-	// pass in the current directory.
-    refresh := reload.New()
-   
-	refresh.OnReload = func() {
-	}
-	return refresh.Handle(next)
+  // Call `New()` with a list of directories to recursively watch, here we don't
+  // watch any directories, because we need to rebuild the service to refresh the templates.
+  // However, the reloader will complain about not having any directories to watch, so we
+  // pass in the current directory.
+  refresh := reload.New()
+
+  refresh.OnReload = func() {}
+
+  return refresh.Handle(next)
 }
-   ```
+```
 
 2. Run your application, make changes to files in the specified directories, and see the updated page instantly!
 
@@ -48,13 +47,14 @@ The injected script is at the bottom of [this file](https://github.com/aarol/rel
 
 You can also do the injection yourself, as the package also exposes the methods `(*Reloader).ServeWS` and `(*Reloader).WatchDirectories`, which are used by the `(*Reloader).Handle` middleware.
 
+> [!NOTE]
 > Currently, injecting the script is done by appending to the end of the document, even after the \</html\> tag.
 > This makes the library code _much_ simpler, but may break older/less forgiving browsers.
 
 ## Caveats
 
-- Reload works with everything that the server sends to the client (HTML,CSS,JS etc.), but it cannot restart the server itself,
-  since it's just a middleware running on the server.
+- Reload works with everything that the server sends to the client (HTML,CSS,JS etc.), but it cannot restart the server 
+  itself, since it's just a middleware running on the server.
 
   To reload the entire server, you can use another file watcher on top, like [watchexec](https://github.com/watchexec/watchexec):
 
