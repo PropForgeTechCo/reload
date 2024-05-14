@@ -126,7 +126,10 @@ func (reload *Reloader) Handle(next http.Handler) http.Handler {
 			// just append the script to the end of the document
 			// this is invalid HTML, but browsers will accept it anyways
 			// should be fine for development purposes
-			w.Write([]byte(scriptToInject))
+			_, err := w.Write([]byte(scriptToInject))
+			if err != nil {
+				return
+			}
 		}
 	})
 }
@@ -149,8 +152,14 @@ func (reload *Reloader) ServeWS(w http.ResponseWriter, r *http.Request) {
 	// Block here until next reload event
 	reload.Wait()
 
-	conn.WriteMessage(websocket.TextMessage, []byte("reload"))
-	conn.Close()
+	err = conn.WriteMessage(websocket.TextMessage, []byte("reload"))
+	if err != nil {
+		return
+	}
+	err = conn.Close()
+	if err != nil {
+		return
+	}
 }
 
 func (reload *Reloader) Wait() {
@@ -159,7 +168,7 @@ func (reload *Reloader) Wait() {
 	reload.cond.L.Unlock()
 }
 
-// Returns the javascript that will be injected on each HTML page.
+// InjectedScript Returns the javascript that will be injected on each HTML page.
 func InjectedScript(endpoint string) string {
 	return fmt.Sprintf(`
 <script>

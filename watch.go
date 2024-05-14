@@ -24,10 +24,15 @@ func (reload *Reloader) WatchDirectories() {
 		reload.Log.Printf("error initializing fsnotify watcher: %s\n", err)
 	}
 
-	defer w.Close()
+	defer func(w *fsnotify.Watcher) {
+		err := w.Close()
+		if err != nil {
+			reload.Log.Printf("error closing fsnotify watcher: %s\n", err)
+		}
+	}(w)
 
-	for _, path := range reload.directories {
-		directories, err := recursiveWalk(path)
+	for _, p := range reload.directories {
+		directories, err := recursiveWalk(p)
 		if err != nil {
 			var pathErr *fs.PathError
 			if errors.As(err, &pathErr) {
@@ -38,11 +43,14 @@ func (reload *Reloader) WatchDirectories() {
 			return
 		}
 		for _, dir := range directories {
-			w.Add(dir)
+			err := w.Add(dir)
+			if err != nil {
+				return
+			}
 		}
 	}
 
-	debounce := debounce.New(100 * time.Millisecond)
+	db := debounce.New(100 * time.Millisecond)
 
 	callback := func(path string) func() {
 		return func() {
@@ -65,18 +73,24 @@ func (reload *Reloader) WatchDirectories() {
 				if err := w.Add(e.Name); err != nil {
 					log.Printf("error watching %s: %s\n", e.Name, err)
 				}
-				debounce(callback(path.Base(e.Name)))
+				db(callback(path.Base(e.Name)))
 
 			case e.Has(fsnotify.Write):
-				debounce(callback(path.Base(e.Name)))
+				db(callback(path.Base(e.Name)))
 
 			case e.Has(fsnotify.Rename), e.Has(fsnotify.Remove):
 				// a renamed file might be outside the specified paths
 				directories, _ := recursiveWalk(e.Name)
 				for _, v := range directories {
-					w.Remove(v)
+					err := w.Remove(v)
+					if err != nil {
+						return
+					}
 				}
-				w.Remove(e.Name)
+				err := w.Remove(e.Name)
+				if err != nil {
+					return
+				}
 			}
 		}
 	}

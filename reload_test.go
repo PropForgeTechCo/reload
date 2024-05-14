@@ -94,7 +94,10 @@ func TestInject(t *testing.T) {
 		<body>
 			<h1>Hello World!</h1>
 		</body>`
-		w.Write([]byte(body))
+		_, err := w.Write([]byte(body))
+		if err != nil {
+			return
+		}
 	})
 
 	reload := NewTestingReloader(t)
@@ -124,7 +127,10 @@ func TestPartialResponse(t *testing.T) {
 		
 		<body>
 			<h1>Hello World!</h1>`
-		w.Write([]byte(body))
+		_, err := w.Write([]byte(body))
+		if err != nil {
+			return
+		}
 	})
 	mux.HandleFunc("/modified", func(w http.ResponseWriter, r *http.Request) {
 		body := `<!DOCTYPE html>
@@ -177,7 +183,10 @@ var benchBody = `<!DOCTYPE html>
 func Benchmark(b *testing.B) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(benchBody))
+		_, err := w.Write([]byte(benchBody))
+		if err != nil {
+			return
+		}
 	})
 
 	ts := httptest.NewServer(mux)
@@ -216,14 +225,14 @@ func containsScript(t *testing.T, reload *Reloader, responseBody io.Reader) bool
 func newWebsocketConn(t *testing.T, addr string, wsVersion string) (*websocket.Conn, *http.Response) {
 	t.Helper()
 
-	url, err := url.Parse(addr)
+	u, err := url.Parse(addr)
 	assert.NoError(t, err)
-	url.Scheme = "ws"
-	q := url.Query()
+	u.Scheme = "ws"
+	q := u.Query()
 	q.Add("v", wsVersion)
-	url.RawQuery = q.Encode()
+	u.RawQuery = q.Encode()
 
-	conn, res, err := websocket.DefaultDialer.Dial(url.String(), nil)
+	conn, res, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	assert.NoError(t, err)
 	return conn, res
 }
